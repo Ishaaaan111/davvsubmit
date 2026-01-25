@@ -1,0 +1,128 @@
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import ProfessorCard from "@/components/professors/ProfessorCard";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useState } from "react";
+
+const professors = [
+  {
+    name: "Dr. Rajesh Sharma",
+    department: "Computer Science",
+    subjects: ["Data Structures", "Algorithms"],
+    officeHours: "Mon-Wed: 10:00 AM - 12:00 PM",
+    email: "r.sharma@davv.ac.in",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+    bio: "Professor with 15+ years of experience in algorithms and computational theory. Published 50+ research papers.",
+  },
+  {
+    name: "Dr. Priya Verma",
+    department: "Information Technology",
+    subjects: ["Database Systems", "Web Development"],
+    officeHours: "Tue-Thu: 2:00 PM - 4:00 PM",
+    email: "p.verma@davv.ac.in",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face",
+    bio: "Expert in database management and modern web technologies. Industry consultant for major IT firms.",
+  },
+  {
+    name: "Dr. Amit Patel",
+    department: "Electronics",
+    subjects: ["Digital Electronics", "VLSI Design"],
+    officeHours: "Mon-Fri: 11:00 AM - 1:00 PM",
+    email: "a.patel@davv.ac.in",
+    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
+    bio: "Researcher in microelectronics and embedded systems. Holds multiple patents in chip design.",
+  },
+  {
+    name: "Dr. Sunita Gupta",
+    department: "Mathematics",
+    subjects: ["Discrete Math", "Linear Algebra"],
+    officeHours: "Wed-Fri: 9:00 AM - 11:00 AM",
+    email: "s.gupta@davv.ac.in",
+    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop&crop=face",
+    bio: "Award-winning mathematician with expertise in applied mathematics and computational methods.",
+  },
+  {
+    name: "Dr. Vikram Singh",
+    department: "Physics",
+    subjects: ["Quantum Mechanics", "Optics"],
+    officeHours: "Mon-Wed: 3:00 PM - 5:00 PM",
+    email: "v.singh@davv.ac.in",
+    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
+    bio: "Leading researcher in quantum computing and optical physics. Collaborated with international labs.",
+  },
+  {
+    name: "Dr. Meena Agarwal",
+    department: "Chemistry",
+    subjects: ["Organic Chemistry", "Biochemistry"],
+    officeHours: "Tue-Thu: 10:00 AM - 12:00 PM",
+    email: "m.agarwal@davv.ac.in",
+    image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=400&h=400&fit=crop&crop=face",
+    bio: "Specialist in pharmaceutical chemistry with research focused on drug synthesis and development.",
+  },
+];
+
+const Professors = () => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredProfessors = professors.filter(
+    (prof) =>
+      prof.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prof.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prof.subjects.some((sub) => sub.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+
+      {/* Header Section */}
+      <section className="pt-24 pb-12 bg-secondary/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto text-center">
+            <span className="text-primary font-semibold text-sm uppercase tracking-wider">Faculty</span>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mt-2 mb-4">
+              Our Distinguished Professors
+            </h1>
+            <p className="text-muted-foreground text-lg mb-8">
+              Meet the brilliant minds guiding your academic journey at DAVV. Find your professor and connect with them.
+            </p>
+
+            {/* Search */}
+            <div className="relative max-w-md mx-auto">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by name, department, or subject..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 h-12 bg-card border-border"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Professors Grid */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          {filteredProfessors.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProfessors.map((professor, index) => (
+                <ProfessorCard key={index} {...professor} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground text-lg">No professors found matching your search.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Professors;
