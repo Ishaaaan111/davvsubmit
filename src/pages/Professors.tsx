@@ -4,6 +4,7 @@ import ProfessorCard from "@/components/professors/ProfessorCard";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useState } from "react";
+import drShaligramImg from "@/assets/dr-shaligram-prajapat.png";
 
 const professors = [
   {
@@ -12,7 +13,7 @@ const professors = [
     subjects: ["Digital Computer Organization", "Algorithms", "Data Mining", "Cryptography"],
     officeHours: "Mon-Fri: 10:00 AM - 12:00 PM",
     email: "shaligram.prajapat@davv.ac.in",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+    image: drShaligramImg,
     bio: "Associate Professor at IIPS, DAVV with 20+ years of experience. Ph.D. from MANIT Bhopal. Research areas include Information Security, Machine Learning, AI, and Cryptic Mining. Fellow of IETE, Senior Member of IEEE, and recipient of Young Investigator Award 2012.",
   },
   {
