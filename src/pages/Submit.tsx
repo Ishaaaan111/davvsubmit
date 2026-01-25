@@ -16,25 +16,33 @@ import { Upload, FileText, Calendar, User, BookOpen, AlertCircle, CheckCircle } 
 import { useToast } from "@/hooks/use-toast";
 
 const professors = [
-  "Dr. Rajesh Sharma",
-  "Dr. Priya Verma",
-  "Dr. Amit Patel",
-  "Dr. Sunita Gupta",
-  "Dr. Vikram Singh",
-  "Dr. Meena Agarwal",
+  "Dr. Shaligram Prajapat",
+  "Ms. Akanksha Jain",
+  "Ms. Archita Jain",
+  "Dr. Shruti Verma",
+  "Mr. Geetesh Kwatra",
+  "Dr. Yasmin Shaikh",
+  "Ms. Ragini Modi",
+  "Ms. Deepti Joshi",
+  "Dr. Suresh Batni",
+  "Mr. Anshul Satle",
 ];
 
 const subjects = [
-  "Data Structures",
-  "Algorithms",
-  "Database Systems",
-  "Web Development",
-  "Digital Electronics",
-  "VLSI Design",
-  "Discrete Math",
-  "Linear Algebra",
-  "Quantum Mechanics",
-  "Organic Chemistry",
+  "CS-101: Mathematics-I (Calculus & Linear Algebra)",
+  "CS-102: Physics-I (Semi-conductor Physics)",
+  "CS-103: Communication Skills",
+  "CS-104: Digital Electronics",
+  "CS-105: Problem Solving using C",
+  "CS-106: Digital Electronics Lab",
+  "CS-107: C Programming Lab",
+  "CS-201: Mathematics-II (Differential Calculus)",
+  "CS-202: Chemistry and Environmental Sciences",
+  "CS-203: Engineering Drawing",
+  "CS-204: Digital Computer Organization",
+  "CS-205: Object Oriented Programming using C++",
+  "CS-206: Engineering Drawing Lab",
+  "CS-207: C++ Programming Lab",
 ];
 
 const semesters = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
