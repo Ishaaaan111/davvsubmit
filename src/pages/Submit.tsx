@@ -51,6 +51,7 @@ const Submit = () => {
   const { toast } = useToast();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     subject: "",
     professor: "",
@@ -83,7 +84,7 @@ const Submit = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!file) {
@@ -104,15 +105,80 @@ const Submit = () => {
       return;
     }
 
-    // Mock submission
-    toast({
-      title: "Assignment Submitted Successfully! 🎉",
-      description: `Your ${formData.subject} assignment has been submitted to ${formData.professor}.`,
-    });
+    setIsSubmitting(true);
 
-    // Reset form
-    setFile(null);
-    setFormData({ subject: "", professor: "", semester: "", deadline: "" });
+    try {
+      // Convert file to base64
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix (e.g., "data:application/pdf;base64,")
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Prepare webhook payload
+      const payload = {
+        subject: formData.subject,
+        professor: formData.professor,
+        semester: formData.semester,
+        deadline: formData.deadline,
+        file: {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          content: fileBase64,
+        },
+        submittedAt: new Date().toISOString(),
+      };
+
+      // Send to webhook
+      const WEBHOOK_URL = 'https://ishantrivedi.app.n8n.cloud/webhook/assignment-submit';
+      
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Webhook request failed: ${response.status} ${response.statusText}. ${errorText}`);
+      }
+
+      // Try to parse response if available
+      let responseData = null;
+      try {
+        responseData = await response.json();
+      } catch {
+        // Response might not be JSON, that's okay
+      }
+
+      // Success
+      toast({
+        title: "Assignment Submitted Successfully! 🎉",
+        description: `Your ${formData.subject} assignment has been submitted to ${formData.professor}.`,
+      });
+
+      // Reset form
+      setFile(null);
+      setFormData({ subject: "", professor: "", semester: "", deadline: "" });
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast({
+        title: "Submission Failed",
+        description: error instanceof Error ? error.message : "An error occurred while submitting your assignment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -300,8 +366,8 @@ const Submit = () => {
                   </div>
 
                   {/* Submit Button */}
-                  <Button type="submit" size="lg" className="w-full">
-                    Submit Assignment
+                  <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Submitting..." : "Submit Assignment"}
                   </Button>
                 </form>
               </CardContent>
