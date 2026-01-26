@@ -52,6 +52,7 @@ const Submit = () => {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [formData, setFormData] = useState({
     subject: "",
     professor: "",
@@ -84,6 +85,68 @@ const Submit = () => {
     }
   };
 
+  const testWebhook = async () => {
+    setIsTestingWebhook(true);
+    const WEBHOOK_URL = 'https://ishantrivedi.app.n8n.cloud/webhook/assignment';
+    
+    try {
+      // Send a simple test payload
+      const testPayload = {
+        test: true,
+        message: "Webhook connection test",
+        timestamp: new Date().toISOString(),
+      };
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for test
+      
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        toast({
+          title: "Webhook Test Successful! ✅",
+          description: `Webhook is accessible and responding correctly (Status: ${response.status}).`,
+        });
+      } else {
+        toast({
+          title: "Webhook Test Warning",
+          description: `Webhook responded with status ${response.status}. Please check the webhook configuration.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Webhook test error:', error);
+      let errorMessage = "Unknown error";
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out. The webhook may be slow or unreachable.';
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        errorMessage = 'Network error: Unable to reach the webhook. Please check your internet connection and the webhook URL.';
+      } else if (error.message?.includes('CORS')) {
+        errorMessage = 'CORS error: The webhook server is not allowing requests from this origin.';
+      } else {
+        errorMessage = `Connection failed: ${error.message || 'Unknown error'}`;
+      }
+      
+      toast({
+        title: "Webhook Test Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingWebhook(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -105,6 +168,17 @@ const Submit = () => {
       return;
     }
 
+    // Validate file size (25MB limit)
+    const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "File size exceeds 25MB limit. Please upload a smaller file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -117,7 +191,7 @@ const Submit = () => {
           const base64 = result.split(',')[1];
           resolve(base64);
         };
-        reader.onerror = reject;
+        reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsDataURL(file);
       });
 
@@ -136,20 +210,47 @@ const Submit = () => {
         submittedAt: new Date().toISOString(),
       };
 
-      // Send to webhook
-      const WEBHOOK_URL = 'https://ishantrivedi.app.n8n.cloud/webhook/assignment-submit';
+      // Send to webhook with timeout
+      const WEBHOOK_URL = 'https://ishantrivedi.app.n8n.cloud/webhook/assignment';
       
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
+      let response;
+      try {
+        response = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // Handle specific error types
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your internet connection and try again.');
+        } else if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('NetworkError')) {
+          throw new Error('Network error: Unable to reach the server. Please check your internet connection and ensure the webhook URL is correct.');
+        } else if (fetchError.message?.includes('CORS')) {
+          throw new Error('CORS error: The server is not allowing requests from this origin. Please contact the administrator.');
+        } else {
+          throw new Error(`Connection failed: ${fetchError.message || 'Unknown error'}. Please try again.`);
+        }
+      }
 
       if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`Webhook request failed: ${response.status} ${response.statusText}. ${errorText}`);
+        let errorText = 'Unknown error';
+        try {
+          errorText = await response.text();
+        } catch {
+          // If we can't read the error text, use status
+        }
+        throw new Error(`Server error (${response.status}): ${response.statusText}. ${errorText}`);
       }
 
       // Try to parse response if available
@@ -171,9 +272,13 @@ const Submit = () => {
       setFormData({ subject: "", professor: "", semester: "", deadline: "" });
     } catch (error) {
       console.error('Submission error:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "An error occurred while submitting your assignment. Please try again.";
+      
       toast({
         title: "Submission Failed",
-        description: error instanceof Error ? error.message : "An error occurred while submitting your assignment. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -365,8 +470,20 @@ const Submit = () => {
                     </div>
                   </div>
 
+                  {/* Test Webhook Button */}
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="lg" 
+                    className="w-full" 
+                    disabled={isTestingWebhook || isSubmitting}
+                    onClick={testWebhook}
+                  >
+                    {isTestingWebhook ? "Testing Webhook..." : "Test Webhook Connection"}
+                  </Button>
+
                   {/* Submit Button */}
-                  <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                  <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || isTestingWebhook}>
                     {isSubmitting ? "Submitting..." : "Submit Assignment"}
                   </Button>
                 </form>
