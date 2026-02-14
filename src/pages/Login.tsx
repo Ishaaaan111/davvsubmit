@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("student");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
-      title: "Login functionality",
-      description: "Backend integration required for authentication. Connect Lovable Cloud to enable this feature.",
+      title: "Login Successful",
+      description: "Welcome back!",
     });
+    navigate("/dashboard");
   };
 
   const handleSignup = (e: React.FormEvent) => {
@@ -111,7 +113,7 @@ const Login = () => {
                       <p className="text-muted-foreground text-sm">
                         Don't have an account?{" "}
                         <button
-                          onClick={() => {}}
+                          onClick={() => { }}
                           className="text-primary font-medium hover:underline"
                         >
                           Register here

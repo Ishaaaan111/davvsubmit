@@ -12,20 +12,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Upload, FileText, Calendar, User, BookOpen, AlertCircle, CheckCircle } from "lucide-react";
+import { Upload, FileText, User, BookOpen, AlertCircle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const professors = [
-  "Dr. Shaligram Prajapat",
-  "Ms. Akanksha Jain",
-  "Ms. Archita Jain",
-  "Dr. Shruti Verma",
-  "Mr. Geetesh Kwatra",
-  "Dr. Yasmin Shaikh",
-  "Ms. Ragini Modi",
-  "Ms. Deepti Joshi",
-  "Dr. Suresh Batni",
-  "Mr. Anshul Satle",
+  { name: "Dr. Shaligram Prajapat", email: "trivediishan003@gmail.com" },
+  { name: "Ms. Akanksha Jain", email: "it9312@srmist.edu.in" },
+  { name: "Ms. Archita Jain", email: "archita.jain@example.com" },
+  { name: "Dr. Shruti Verma", email: "shruti.verma@example.com" },
+  { name: "Mr. Geetesh Kwatra", email: "geetesh.kwatra@example.com" },
+  { name: "Dr. Yasmin Shaikh", email: "yasmin.shaikh@example.com" },
+  { name: "Ms. Ragini Modi", email: "ragini.modi@example.com" },
+  { name: "Ms. Deepti Joshi", email: "deepti.joshi@example.com" },
+  { name: "Dr. Suresh Batni", email: "suresh.batni@example.com" },
+  { name: "Mr. Anshul Satle", email: "anshul.satle@example.com" },
 ];
 
 const subjects = [
@@ -52,12 +52,11 @@ const Submit = () => {
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+
   const [formData, setFormData] = useState({
     subject: "",
     professor: "",
     semester: "",
-    deadline: "",
   });
 
   const handleDrag = (e: React.DragEvent) => {
@@ -85,71 +84,13 @@ const Submit = () => {
     }
   };
 
-  const testWebhook = async () => {
-    setIsTestingWebhook(true);
-    const WEBHOOK_URL = 'https://ishantrivedi.app.n8n.cloud/webhook/assignment';
-    
-    try {
-      // Send a simple test payload
-      const testPayload = {
-        test: true,
-        message: "Webhook connection test",
-        timestamp: new Date().toISOString(),
-      };
+  const SUBMISSION_WEBHOOK_URL = 'https://it9312.app.n8n.cloud/webhook/assignment-submission';
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for test
-      
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testPayload),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
 
-      if (response.ok) {
-        toast({
-          title: "Webhook Test Successful! ✅",
-          description: `Webhook is accessible and responding correctly (Status: ${response.status}).`,
-        });
-      } else {
-        toast({
-          title: "Webhook Test Warning",
-          description: `Webhook responded with status ${response.status}. Please check the webhook configuration.`,
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error('Webhook test error:', error);
-      let errorMessage = "Unknown error";
-      
-      if (error.name === 'AbortError') {
-        errorMessage = 'Request timed out. The webhook may be slow or unreachable.';
-      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-        errorMessage = 'Network error: Unable to reach the webhook. Please check your internet connection and the webhook URL.';
-      } else if (error.message?.includes('CORS')) {
-        errorMessage = 'CORS error: The webhook server is not allowing requests from this origin.';
-      } else {
-        errorMessage = `Connection failed: ${error.message || 'Unknown error'}`;
-      }
-      
-      toast({
-        title: "Webhook Test Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsTestingWebhook(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!file) {
       toast({
         title: "No file selected",
@@ -159,7 +100,16 @@ const Submit = () => {
       return;
     }
 
-    if (!formData.subject || !formData.professor || !formData.semester || !formData.deadline) {
+    if (!SUBMISSION_WEBHOOK_URL) {
+      toast({
+        title: "Configuration Error",
+        description: "Webhook URL is missing. Please configure it in the code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.subject || !formData.professor || !formData.semester) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields.",
@@ -182,83 +132,34 @@ const Submit = () => {
     setIsSubmitting(true);
 
     try {
-      // Convert file to base64
-      const fileBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          // Remove data URL prefix (e.g., "data:application/pdf;base64,")
-          const base64 = result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
+      // Find the selected professor's email
+      const selectedProfessorData = professors.find(p => p.name === formData.professor);
+      const receiverEmail = selectedProfessorData ? selectedProfessorData.email : "";
+
+      // Create FormData object
+      const data = new FormData();
+      data.append('subject', formData.subject);
+      data.append('professor', formData.professor);
+      data.append('receiverEmail', receiverEmail);
+      data.append('semester', formData.semester);
+      data.append('submittedAt', new Date().toISOString());
+
+      // Append file as binary
+      data.append('file', file);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+      const response = await fetch(SUBMISSION_WEBHOOK_URL, {
+        method: 'POST',
+        body: data, // Content-Type will be automatically set to multipart/form-data with boundary
+        signal: controller.signal,
       });
 
-      // Prepare webhook payload
-      const payload = {
-        subject: formData.subject,
-        professor: formData.professor,
-        semester: formData.semester,
-        deadline: formData.deadline,
-        file: {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          content: fileBase64,
-        },
-        submittedAt: new Date().toISOString(),
-      };
-
-      // Send to webhook with timeout
-      const WEBHOOK_URL = 'https://ishantrivedi.app.n8n.cloud/webhook/assignment';
-      
-      // Create AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-      
-      let response;
-      try {
-        response = await fetch(WEBHOOK_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        // Handle specific error types
-        if (fetchError.name === 'AbortError') {
-          throw new Error('Request timed out. Please check your internet connection and try again.');
-        } else if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('NetworkError')) {
-          throw new Error('Network error: Unable to reach the server. Please check your internet connection and ensure the webhook URL is correct.');
-        } else if (fetchError.message?.includes('CORS')) {
-          throw new Error('CORS error: The server is not allowing requests from this origin. Please contact the administrator.');
-        } else {
-          throw new Error(`Connection failed: ${fetchError.message || 'Unknown error'}. Please try again.`);
-        }
-      }
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        let errorText = 'Unknown error';
-        try {
-          errorText = await response.text();
-        } catch {
-          // If we can't read the error text, use status
-        }
-        throw new Error(`Server error (${response.status}): ${response.statusText}. ${errorText}`);
-      }
-
-      // Try to parse response if available
-      let responseData = null;
-      try {
-        responseData = await response.json();
-      } catch {
-        // Response might not be JSON, that's okay
+        throw new Error(`Assignment submission failed (${response.status})`);
       }
 
       // Success
@@ -269,13 +170,25 @@ const Submit = () => {
 
       // Reset form
       setFile(null);
-      setFormData({ subject: "", professor: "", semester: "", deadline: "" });
-    } catch (error) {
+      setFormData({
+        subject: "",
+        professor: "",
+        semester: "",
+      });
+    } catch (error: any) {
       console.error('Submission error:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "An error occurred while submitting your assignment. Please try again.";
-      
+      let errorMessage = "An error occurred while submitting your assignment. Please try again.";
+
+      if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out. Please check your internet connection and try again.';
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        errorMessage = 'Network error: Unable to reach the server. Please check your internet connection.';
+      } else if (error.message?.includes('CORS')) {
+        errorMessage = 'CORS error: The server is not allowing requests from this origin.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Submission Failed",
         description: errorMessage,
@@ -299,7 +212,7 @@ const Submit = () => {
               Submit Your Assignment
             </h1>
             <p className="text-muted-foreground text-lg">
-              Upload your assignment, select the details, and submit before the deadline.
+              Upload your assignment, select the details, and submit.
             </p>
           </div>
         </div>
@@ -325,13 +238,12 @@ const Submit = () => {
                   <div className="space-y-2">
                     <Label>Upload File *</Label>
                     <div
-                      className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                        dragActive
-                          ? "border-primary bg-primary/5"
-                          : file
+                      className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${dragActive
+                        ? "border-primary bg-primary/5"
+                        : file
                           ? "border-primary/50 bg-primary/5"
                           : "border-border hover:border-primary/50"
-                      }`}
+                        }`}
                       onDragEnter={handleDrag}
                       onDragLeave={handleDrag}
                       onDragOver={handleDrag}
@@ -414,8 +326,8 @@ const Submit = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {professors.map((professor) => (
-                          <SelectItem key={professor} value={professor}>
-                            {professor}
+                          <SelectItem key={professor.name} value={professor.name}>
+                            {professor.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -442,20 +354,6 @@ const Submit = () => {
                     </Select>
                   </div>
 
-                  {/* Deadline */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      Assignment Deadline *
-                    </Label>
-                    <Input
-                      type="date"
-                      value={formData.deadline}
-                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                      className="bg-card"
-                    />
-                  </div>
-
                   {/* Notice */}
                   <div className="flex items-start gap-3 p-4 bg-accent rounded-lg">
                     <AlertCircle className="w-5 h-5 text-accent-foreground shrink-0 mt-0.5" />
@@ -470,20 +368,10 @@ const Submit = () => {
                     </div>
                   </div>
 
-                  {/* Test Webhook Button */}
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="lg" 
-                    className="w-full" 
-                    disabled={isTestingWebhook || isSubmitting}
-                    onClick={testWebhook}
-                  >
-                    {isTestingWebhook ? "Testing Webhook..." : "Test Webhook Connection"}
-                  </Button>
+
 
                   {/* Submit Button */}
-                  <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || isTestingWebhook}>
+                  <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                     {isSubmitting ? "Submitting..." : "Submit Assignment"}
                   </Button>
                 </form>

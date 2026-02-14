@@ -105,9 +105,9 @@ const Footer = () => {
             © {new Date().getFullYear()} Devi Ahilya Vishwavidyalaya. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-card/50 hover:text-card text-sm transition-colors">
+            <Link to="/policy" className="text-card/50 hover:text-card text-sm transition-colors">
               Privacy Policy
-            </a>
+            </Link>
             <a href="#" className="text-card/50 hover:text-card text-sm transition-colors">
               Terms of Use
             </a>
