@@ -16,7 +16,7 @@ import { Upload, FileText, User, BookOpen, AlertCircle, CheckCircle } from "luci
 import { useToast } from "@/hooks/use-toast";
 
 const professors = [
-  { name: "Dr. Shaligram Prajapat", email: "trivediishan003@gmail.com" },
+  { name: "Dr. Shaligram Prajapat", email: "arjavjain9@gmail.com" },
   { name: "Ms. Akanksha Jain", email: "it9312@srmist.edu.in" },
   { name: "Ms. Archita Jain", email: "archita.jain@example.com" },
   { name: "Dr. Shruti Verma", email: "shruti.verma@example.com" },
